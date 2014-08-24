@@ -1,0 +1,78 @@
+---
+output: pdf_document
+---
+
+##Title: Measuring Impact of Natural Events 
+##Snopysis 
+This analysis measures the impact of natural events.  The two metrics used to measure the impact of the natural events are fatalities and economic damage.  
+
+##Data Processing
+```{r echo=TRUE}
+require("data.table")
+setwd("C:/Users/Eric.Kim/Desktop/TSA Files/Coursera/Reproducible Research/Assignment 2")
+
+#read bz2 file
+storm<-read.csv("repdata-data-StormData.csv.bz2")
+
+#aggregate fatalities by event
+storm<-data.table(storm)
+setkey(storm, EVTYPE)
+health<-data.frame(storm[,sum(FATALITIES), by=EVTYPE])
+names(health)[1]<-"event"
+names(health)[2]<-"fatalities"
+health<-health[with(health, order(-fatalities)),]
+health<-head(health,20)
+```
+
+```{r}
+#convert storm from data table to data frame
+storm<-data.frame(storm)
+
+#Transform the costs data by multipling by thousands or millions.  The reason for the transformation 
+#is to add the crop and property damage as total costs
+storm$CROPDMG2<-ifelse(storm$CROPDMGEXP=='K', storm$CROPDMG*1000, 
+       ifelse(storm$CROPDMGEXP=='M', storm$CROPDMG*1000000, storm$CROPDMG))
+storm$PROPDMG2<-ifelse(storm$PROPDMGEXP=='K', storm$PROPDMG*1000, 
+       ifelse(storm$PROPDMGEXP=='M', storm$PROPDMG*1000000, storm$PROPDMG))
+
+#sum damage costs
+storm$damage<-rowSums(storm[,38:39])
+storm<-data.table(storm)
+setkey(storm, EVTYPE)
+damage<-data.frame(storm[,sum(damage), by=EVTYPE])
+names(damage)[1]<-"event"
+names(damage)[2]<-"damage"
+damage<-damage[with(damage, order(-damage)),]
+damage<-head(damage,20)
+```
+
+##Results
+The most destructive natural events are tornados.  They caused the most fatalities and economic damage is Tornado, resulting in 5,633 deaths and causing $52B in damages.  
+
+###Events Most Harmful to Public Health
+```{r}
+#display to 20 fatal events
+health  
+```
+
+```{r}
+#plot fatalities by event 
+library(ggplot2)
+ggplot(health, aes(event, fatalities))+geom_bar(stat="identity")+theme(axis.text.x = element_text(angle = 90, hjust = 1))+ggtitle("Events Most Harmful to Public Health")
+``` 
+ 
+Figure Description: The figure above lists the top 20 events that have caused the most fatalities
+
+###Events with the Greatest Economic Damage
+```{r}
+#display events that cause the most economic damaging 
+damage
+```
+
+
+```{r}
+#graph economic damage
+ggplot(damage, aes(event, damage))+geom_bar(stat="identity")+theme(axis.text.x = element_text(angle = 90, hjust = 1))+ggtitle("Events that Cause the Most Economic Damage")
+``` 
+ 
+Figure Description: The figure above lists the top 20 events that have caused the most economic damage
